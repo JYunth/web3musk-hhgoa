@@ -7,10 +7,11 @@ type AmountState = {
   wbtcAmount: string | null;
 };
 
+// creating context for prop drilling purposes, I hate typescript
 
 
 // worked inside the swap component scope, if error put it back in there
-const [pair, setPair] = useState<"BTC-WBTC" | "WBTC-BTC">("WBTC-BTC");
+
 
 const SwapComponent: React.FC = () => {
   
@@ -19,6 +20,7 @@ const SwapComponent: React.FC = () => {
     wbtcAmount: null,
   });
 
+  const [pair, setPair] = useState<"BTC-WBTC" | "WBTC-BTC">("WBTC-BTC");
 
   const changeAmount = (pair: "WBTC-BTC" | "BTC-WBTC", value: string) => {
     if (pair === "WBTC-BTC") {
