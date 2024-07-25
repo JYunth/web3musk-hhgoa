@@ -16,3 +16,4 @@ The BTC wallet is an OTA (one time address) wallet which gets automatically gene
 Then, swap BTC to WBTC to get some funds on the WBTC wallet.
 The OTA BTC wallet used in the first swap will be the source of the funds for the second swap.
 
+![it works lol!](image.png)
