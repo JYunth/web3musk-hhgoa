@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import { EVMWallet } from "@catalogfi/wallets";
-import { BrowserProvider } from "ethers";
+import {BrowserProvider } from "ethers";
 import { GardenJS } from "@gardenfi/core";
 import { Orderbook, Chains } from "@gardenfi/orderbook";
 import {
@@ -123,6 +123,8 @@ const useGardenSetup = () => {
         },
       });
 
+
+      // This is something I MAY NEED 
       const wallets = {
         [Chains.bitcoin_regtest]: new BitcoinOTA(bitcoinProvider, signer),
         [Chains.ethereum_localnet]: new EVMWallet(signer),

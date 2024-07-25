@@ -7,17 +7,30 @@ type AmountState = {
   wbtcAmount: string | null;
 };
 
+
+
+// worked inside the swap component scope, if error put it back in there
+const [pair, setPair] = useState<"BTC-WBTC" | "WBTC-BTC">("WBTC-BTC");
+
 const SwapComponent: React.FC = () => {
+  
   const [amount, setAmount] = useState<AmountState>({
     btcAmount: null,
     wbtcAmount: null,
   });
 
-  const changeAmount = (of: "WBTC" | "BTC", value: string) => {
-    if (of === "WBTC") {
+
+  const changeAmount = (pair: "WBTC-BTC" | "BTC-WBTC", value: string) => {
+    if (pair === "WBTC-BTC") {
       handleWBTCChange(value);
+      setPair("WBTC-BTC");
+    } else {
+      handleBTCChange(value);
+      setPair("BTC-WBTC");
     }
   };
+
+  // The part of code that handles the WBTC-BTC swap
   const handleWBTCChange = (value: string) => {
     const newAmount: AmountState = { wbtcAmount: value, btcAmount: null };
     if (Number(value) > 0) {
@@ -27,13 +40,49 @@ const SwapComponent: React.FC = () => {
     setAmount(newAmount);
   };
 
+  // The part of code that handles the BTC-WBTC swap
+  const handleBTCChange = (value: string) => {
+    const newAmount: AmountState = { btcAmount: value, wbtcAmount: null };
+    if (Number(value) > 0) {
+      const wbtcAmount = (1 - 0.3 / 100) * Number(value);
+      newAmount.wbtcAmount = wbtcAmount.toFixed(8).toString();
+    }
+    setAmount(newAmount);
+  };
+
   return (
     <div className="swap-component">
       <WalletConnect />
-      <hr></hr>
-      <SwapAmount amount={amount} changeAmount={changeAmount} />
-      <hr></hr>
-      <Swap amount={amount} changeAmount={changeAmount} />
+      <hr />
+      <div>
+        <div>
+          <label>
+            <input
+              type="radio"
+              name="pair"
+              value="BTC-WBTC"
+              checked={pair === "BTC-WBTC"}
+              onChange={() => setPair("BTC-WBTC")}
+            />
+            BTC-WBTC
+          </label>
+        </div>
+        <div>
+        <label>
+            <input
+              type="radio"
+              name="pair"
+              value="WBTC-BTC"
+              checked={pair === "WBTC-BTC"}
+              onChange={() => setPair("WBTC-BTC")}
+            />
+            WBTC-BTC
+          </label>
+        </div>
+      </div>
+      <SwapAmount amount={amount} changeAmount={changeAmount} pair={pair} />
+      <hr />
+      <Swap amount={amount} changeAmount={changeAmount} pair={pair} />
     </div>
   );
 };
@@ -75,24 +124,52 @@ const MetaMaskButton: React.FC<MetaMaskButtonProps> = ({
 
 type TransactionAmountComponentProps = {
   amount: AmountState;
-  changeAmount: (of: "WBTC" | "BTC", value: string) => void;
+  changeAmount: (pair: "WBTC-BTC" | "BTC-WBTC", value: string) => void;
+  pair: "BTC-WBTC" | "WBTC-BTC";
 };
 
 const SwapAmount: React.FC<TransactionAmountComponentProps> = ({
   amount,
   changeAmount,
+  pair,
 }) => {
   const { wbtcAmount, btcAmount } = amount;
 
   return (
     <div className="swap-component-middle-section">
-      <InputField
-        id="wbtc"
-        label="Send WBTC"
-        value={wbtcAmount}
-        onChange={(value) => changeAmount("WBTC", value)}
-      />
-      <InputField id="btc" label="Receive BTC" value={btcAmount} readOnly />
+      {pair === "WBTC-BTC" ? (
+        <>
+          <InputField
+            id="wbtc"
+            label="Send WBTC"
+            value={wbtcAmount}
+            onChange={(value) => changeAmount("WBTC-BTC", value)}
+          />
+
+          <InputField 
+          id="btc" 
+          label="Receive BTC" 
+          value={btcAmount} 
+          readOnly 
+          />
+        </>
+      ) : (
+        <>
+          <InputField
+            id="btc"
+            label="Send BTC"
+            value={btcAmount}
+            onChange={(value) => changeAmount("BTC-WBTC", value)}
+          />
+
+          <InputField
+            id="wbtc"
+            label="Receive WBTC"
+            value={wbtcAmount}
+            readOnly
+          />
+        </>
+      )}
     </div>
   );
 };
@@ -130,7 +207,8 @@ const InputField: React.FC<InputFieldProps> = ({
 
 type SwapAndAddressComponentProps = {
   amount: AmountState;
-  changeAmount: (of: "WBTC" | "BTC", value: string) => void;
+  changeAmount: (pair: "WBTC-BTC" | "BTC-WBTC", value: string) => void;
+  pair: "BTC-WBTC" | "WBTC-BTC";
 };
 
 const Swap: React.FC<SwapAndAddressComponentProps> = ({
@@ -163,14 +241,15 @@ const Swap: React.FC<SwapAndAddressComponentProps> = ({
     )
       return;
 
-    const sendAmount = Number(wbtcAmount) * 1e8;
-    const recieveAmount = Number(btcAmount) * 1e8;
+    // check if this works properly!!!!!!!!!!!!!!!!!
+    const sendAmount = pair === "WBTC-BTC" ? Number(wbtcAmount) * 1e8 : Number(btcAmount) * 1e8;
+    const recieveAmount = pair === "WBTC-BTC" ? Number(btcAmount) * 1e8 : Number(wbtcAmount) * 1e8;
 
-    changeAmount("WBTC", "");
+    changeAmount("WBTC-BTC", "");
 
     await garden.swap(
-      Assets.ethereum_localnet.WBTC,
-      Assets.bitcoin_regtest.BTC,
+      pair === "WBTC-BTC" ? Assets.ethereum_localnet.WBTC : Assets.bitcoin_regtest.BTC,
+      pair === "WBTC-BTC" ? Assets.bitcoin_regtest.BTC : Assets.ethereum_localnet.WBTC,
       sendAmount,
       recieveAmount
     );
