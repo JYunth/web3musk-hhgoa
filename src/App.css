@@ -308,4 +308,12 @@ hr {
   font-size: 1rem;
 }
 
+.radio-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
 /* ------------ Transaction Component End ------------ */

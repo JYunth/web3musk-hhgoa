@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import { useMetaMaskStore, useGarden, useSignStore } from "./store";
 import { Assets } from "@gardenfi/orderbook";
 
@@ -8,13 +8,17 @@ type AmountState = {
 };
 
 // creating context for prop drilling purposes, I hate typescript
+type PairContextType = {
+  pair: "BTC-WBTC" | "WBTC-BTC";
+  setPair: React.Dispatch<React.SetStateAction<"BTC-WBTC" | "WBTC-BTC">>;
+};
 
-
+const PairContext = createContext<PairContextType | undefined>(undefined);
 // worked inside the swap component scope, if error put it back in there
 
 
 const SwapComponent: React.FC = () => {
-  
+
   const [amount, setAmount] = useState<AmountState>({
     btcAmount: null,
     wbtcAmount: null,
@@ -53,39 +57,42 @@ const SwapComponent: React.FC = () => {
   };
 
   return (
-    <div className="swap-component">
-      <WalletConnect />
-      <hr />
-      <div>
-        <div>
-          <label>
-            <input
-              type="radio"
-              name="pair"
-              value="BTC-WBTC"
-              checked={pair === "BTC-WBTC"}
-              onChange={() => setPair("BTC-WBTC")}
-            />
-            BTC-WBTC
-          </label>
+    <PairContext.Provider value={{ pair, setPair }}>
+      <div className="swap-component">
+        <WalletConnect />
+        <hr />
+        <div className="radio-buttons">
+          <div>
+            <label>
+              <input
+                type="radio"
+                name="pair"
+                value="BTC-WBTC"
+                checked={pair === "BTC-WBTC"}
+                onChange={() => setPair("BTC-WBTC")}
+              />
+              BTC-WBTC
+            </label>
+          </div>
+          <div>
+            <label>
+              <input
+                type="radio"
+                name="pair"
+                value="WBTC-BTC"
+                checked={pair === "WBTC-BTC"}
+                onChange={() => setPair("WBTC-BTC")}
+              />
+              WBTC-BTC
+            </label>
+          </div>
         </div>
-        <div>
-        <label>
-            <input
-              type="radio"
-              name="pair"
-              value="WBTC-BTC"
-              checked={pair === "WBTC-BTC"}
-              onChange={() => setPair("WBTC-BTC")}
-            />
-            WBTC-BTC
-          </label>
-        </div>
+        <hr />
+        <SwapAmount amount={amount} changeAmount={changeAmount} pair={pair} />
+        <hr />
+        <Swap amount={amount} changeAmount={changeAmount} pair={pair} />
       </div>
-      <SwapAmount amount={amount} changeAmount={changeAmount} pair={pair} />
-      <hr />
-      <Swap amount={amount} changeAmount={changeAmount} pair={pair} />
-    </div>
+    </PairContext.Provider>
   );
 };
 
@@ -112,9 +119,8 @@ const MetaMaskButton: React.FC<MetaMaskButtonProps> = ({
   isConnected,
   onClick,
 }) => {
-  const buttonClass = `connect-metamask button-${
-    isConnected ? "black" : "white"
-  }`;
+  const buttonClass = `connect-metamask button-${isConnected ? "black" : "white"
+    }`;
   const buttonText = isConnected ? "Connected" : "Connect Metamask";
 
   return (
@@ -133,9 +139,15 @@ type TransactionAmountComponentProps = {
 const SwapAmount: React.FC<TransactionAmountComponentProps> = ({
   amount,
   changeAmount,
-  pair,
 }) => {
   const { wbtcAmount, btcAmount } = amount;
+
+  // Use the context here
+  const pairContext = useContext(PairContext);
+  if (!pairContext) {
+    throw new Error("SwapAmount must be used within a PairContext.Provider");
+  }
+  const { pair } = pairContext;
 
   return (
     <div className="swap-component-middle-section">
@@ -148,11 +160,11 @@ const SwapAmount: React.FC<TransactionAmountComponentProps> = ({
             onChange={(value) => changeAmount("WBTC-BTC", value)}
           />
 
-          <InputField 
-          id="btc" 
-          label="Receive BTC" 
-          value={btcAmount} 
-          readOnly 
+          <InputField
+            id="btc"
+            label="Receive BTC"
+            value={btcAmount}
+            readOnly
           />
         </>
       ) : (
@@ -221,8 +233,15 @@ const Swap: React.FC<SwapAndAddressComponentProps> = ({
   const [btcAddress, setBtcAddress] = useState<string>();
   const { metaMaskIsConnected } = useMetaMaskStore();
   const { wbtcAmount, btcAmount } = amount;
-
   const { isSigned } = useSignStore();
+
+  // Use the context here
+  const pairContext = useContext(PairContext);
+  console.log("PairContext:", pairContext);
+  if (!pairContext) {
+    throw new Error("Swap must be used within a PairContext.Provider");
+  }
+  const { pair, setPair } = pairContext;
 
   useEffect(() => {
     if (!bitcoin) return;
@@ -260,7 +279,7 @@ const Swap: React.FC<SwapAndAddressComponentProps> = ({
   return (
     <div className="swap-component-bottom-section">
       <div>
-        <label htmlFor="receive-address">Receive address</label>
+        {pair === "WBTC-BTC" ? <label htmlFor="receive-address">Receive address</label> : <label htmlFor="receive-address">bitcoinOTA sender address</label>}
         <div className="input-component">
           <input
             id="receive-address"
@@ -270,6 +289,7 @@ const Swap: React.FC<SwapAndAddressComponentProps> = ({
           />
         </div>
       </div>
+      <div>Please faucet some WBTC and swap it to the BTC OTA first before swapping BTC to WBTC</div>
       <button
         className={`button-${metaMaskIsConnected ? "white" : "black"}`}
         onClick={handleSwap}
